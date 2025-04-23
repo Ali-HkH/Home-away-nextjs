@@ -13,7 +13,7 @@ function PropertyRating({
       inPage ? "text-md" : "text-xs"
    }`;
    const countText = count > 1 ? "reviews" : "review";
-   const countValue = `${count} ${inPage ? countText : ""}`;
+   const countValue = `(${count}) ${inPage ? countText : ""}`;
 
    return (
       <span className={className}>

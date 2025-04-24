@@ -1,6 +1,7 @@
 "use server";
 
 import {
+   createReviewShema,
    imageSchema,
    profileSchema,
    propertySchema,
@@ -11,7 +12,6 @@ import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { uploadImage } from "./supabase";
-import { string } from "zod";
 
 const getAuthUser = async () => {
    const user = await currentUser();
@@ -226,7 +226,9 @@ export const toggleFavoriteAction = async (prevState: {
          });
       }
       revalidatePath(pathname);
-      return { message: favoriteId ? "Removed from Faves" : "Added to Faves" };
+      return {
+         message: favoriteId ? "Removed from favorites" : "Added to favorites",
+      };
    } catch (error) {
       return renderError(error);
    }
@@ -251,17 +253,130 @@ export const fetchFavorites = async () => {
          },
       },
    });
-   return favorites.map(favorite => favorite.property)
+   return favorites.map((favorite) => favorite.property);
 };
-
 
 export const fetchPropertyDetails = (id: string) => {
    return db.property.findUnique({
       where: {
-         id
+         id,
       },
       include: {
          profile: true,
-      }
-   })
+      },
+   });
+};
+
+export const createReviewAction = async (
+   prevState: any,
+   formData: FormData
+) => {
+   const user = await getAuthUser();
+   try {
+      const rawData = Object.fromEntries(formData);
+      const validatedFields = validateWithZodSchema(createReviewShema, rawData);
+      await db.review.create({
+         data: {
+            ...validatedFields,
+            profileId: user.id,
+         },
+      });
+      revalidatePath(`/properties/${validatedFields.propertyId}`);
+
+      return { message: "created review" };
+   } catch (error) {
+      return renderError(error);
+   }
+};
+
+export const fetchPropertyReviews = async (propertyId: string) => {
+   const reviews = await db.review.findMany({
+      where: {
+         propertyId,
+      },
+      select: {
+         id: true,
+         rating: true,
+         comment: true,
+         profile: {
+            select: {
+               firstName: true,
+               profileImage: true,
+            },
+         },
+      },
+      orderBy: {
+         createdAt: "desc",
+      },
+   });
+   return reviews;
+};
+
+export const fetchPropertyReviewsByUser = async () => {
+   const user = await getAuthUser();
+   const reviews = await db.review.findMany({
+      where: {
+         profileId: user.id,
+      },
+      select: {
+         id: true,
+         rating: true,
+         comment: true,
+         property: {
+            select: {
+               name: true,
+               image: true,
+            },
+         },
+      },
+   });
+   return reviews;
+};
+
+export const deleteReviewAction = async (pervState: { reviewId: string }) => {
+   const { reviewId } = pervState;
+   const user = await getAuthUser();
+   try {
+      await db.review.delete({
+         where: {
+            id: reviewId,
+            profileId: user.id,
+         },
+      });
+      revalidatePath("/");
+      return { message: "review deleted" };
+   } catch (error) {
+      return renderError(error);
+   }
+};
+
+export async function fetchPropertyRating(propertyId: string) {
+   const result = await db.review.groupBy({
+      by: ["propertyId"],
+      _avg: {
+         rating: true,
+      },
+      _count: {
+         rating: true,
+      },
+      where: {
+         propertyId,
+      },
+   });
+   return {
+      rating: result[0]?._avg.rating?.toFixed() ?? 0,
+      count: result[0]?._count.rating ?? 0,
+   };
 }
+
+export const findExistingReview = async (
+   userId: string,
+   propertyId: string
+) => {
+   return db.review.findFirst({
+      where: {
+         profileId: userId,
+         propertyId,
+      },
+   });
+};

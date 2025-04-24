@@ -24,7 +24,7 @@ function Description({ description }: { description: string }) {
             {displayedDescription}
          </p>
          {isLongDescription && (<Button variant="link" className="pl-0" onClick={toggleDescription}>
-            {isFullDescriptionShown ? "Show less" : "Show more"}
+            {isFullDescriptionShown ? "Show Less" : "Show More"}
          </Button>)}
       </article>
    );

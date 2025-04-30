@@ -18,13 +18,13 @@ async function ProfilePage() {
          </h1>
          <div className="border p-8 rounded-md">
             <ImageInputContainer
+               text="Update Profile Image"
                image={profile.profileImage}
                name={profile.username}
                action={updateProfileImageAction}
-               text="Update Profile Image"
             />
             <FormContainer action={updateProfileAction}>
-               <div className="grid gap-4 mt-4 md:grid-cols-2">
+               <div className="grid md:grid-cols-2 gap-4 mb-8">
                   <FormInput
                      type="text"
                      name="firstName"
@@ -44,7 +44,7 @@ async function ProfilePage() {
                      defaultValue={profile.username}
                   />
                </div>
-               <SubmitButton text="Update Profile" className="mt-8" />
+               <SubmitButton text="Update Profile"/>
             </FormContainer>
          </div>
       </section>

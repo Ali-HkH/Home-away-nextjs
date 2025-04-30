@@ -8,7 +8,7 @@ import {
    validateWithZodSchema,
 } from "./schemas";
 import db from "./db";
-import { clerkClient, currentUser } from "@clerk/nextjs/server";
+import { clerkClient, currentUser, getAuth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { uploadImage } from "./supabase";
@@ -458,6 +458,126 @@ export const deleteBookingAction = async (prevState: { bookingId: string }) => {
       });
       revalidatePath("/bookings");
       return { message: "Booking deleted." };
+   } catch (error) {
+      return renderError(error);
+   }
+};
+
+export const fetchRentals = async () => {
+   const user = await getAuthUser();
+   const rentals = await db.property.findMany({
+      where: {
+         profileId: user.id,
+      },
+      select: {
+         id: true,
+         name: true,
+         price: true,
+      },
+   });
+
+   const rentalsWithBookingsSums = await Promise.all(
+      rentals.map(async (rental) => {
+         const totalNightsSum = await db.booking.aggregate({
+            where: {
+               propertyId: rental.id,
+            },
+            _sum: {
+               totalNights: true,
+            },
+         });
+         const orderTotalSum = await db.booking.aggregate({
+            where: {
+               propertyId: rental.id,
+            },
+            _sum: {
+               orderTotal: true,
+            },
+         });
+         return {
+            ...rental,
+            totalNightsSum: totalNightsSum._sum.totalNights,
+            orderTotalSum: orderTotalSum._sum.orderTotal,
+         };
+      })
+   );
+   return rentalsWithBookingsSums;
+};
+
+export const deleteRentalAction = async (prevState: { propertyId: string }) => {
+   const { propertyId } = prevState;
+   const user = await getAuthUser();
+
+   try {
+      await db.property.delete({
+         where: {
+            id: propertyId,
+            profileId: user.id,
+         },
+      });
+      revalidatePath("/rentals");
+      return { message: "rentals deleted." };
+   } catch (error) {
+      return renderError(error);
+   }
+};
+
+export const fetchRentalDetails = async (propertyId: string) => {
+   const user = await getAuthUser();
+   return db.property.findUnique({
+      where: {
+         id: propertyId,
+         profileId: user.id,
+      },
+   });
+};
+
+export const updatePropertyAction = async (
+   prevState: any,
+   formData: FormData
+): Promise<{ message: string }> => {
+   const user = await getAuthUser();
+   const propertyId = formData.get("id") as string;
+   try {
+      const rawData = Object.fromEntries(formData);
+      const validatedFields = validateWithZodSchema(propertySchema, rawData);
+      await db.property.update({
+         where: {
+            id: propertyId,
+            profileId: user.id,
+         },
+         data: {
+            ...validatedFields,
+         },
+      });
+      revalidatePath(`/rentals/${propertyId}/edit`);
+      return { message: "property info updated." };
+   } catch (error) {
+      return renderError(error);
+   }
+};
+
+export const updatePropertyImageAction = async (
+   prevState: any,
+   formData: FormData
+): Promise<{ message: string }> => {
+   const user = await getAuthUser();
+   const propertyId = formData.get("id") as string;
+   try {
+      const image = formData.get("image") as File;
+      const validatedImage = validateWithZodSchema(imageSchema, { image });
+      const fullPath = await uploadImage(validatedImage.image);
+      await db.property.update({
+         where: {
+            id: propertyId,
+            profileId: user.id,
+         },
+         data: {
+            image: fullPath,
+         },
+      });
+      revalidatePath(`/rentals/${propertyId}/edit`);
+      return { message: "property image updated." };
    } catch (error) {
       return renderError(error);
    }

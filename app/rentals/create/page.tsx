@@ -37,7 +37,7 @@ function CreatePropertyPage() {
                </div>
                <TextareaInput
                   name="description"
-                  labelText="Description (10 - 1000 words)"
+                  labelText="Description (10 - 100 words)"
                />
                <div className="grid sm:grid-cols-2 gap-8 mt-4">
                   <CountriesInput />

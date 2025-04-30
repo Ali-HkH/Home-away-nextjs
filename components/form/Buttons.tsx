@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/nextjs";
 import { FaRegHeart, FaHeart } from "react-icons/fa";
-import { LuTrash, LuPenTool } from "react-icons/lu";
+import { LuTrash, LuPencil } from "react-icons/lu";
 
 type BtnSize = "default" | "lg" | "sm";
 
@@ -85,7 +85,7 @@ export const IconButton = ({ actionType }: { actionType: IconBtnAction }) => {
    const renderIcon = () => {
       switch (actionType) {
          case "edit":
-            return <LuPenTool />;
+            return <LuPencil />;
          case "delete":
             return <LuTrash />;
          default:

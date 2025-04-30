@@ -25,7 +25,7 @@ function ImageInputContainer(props: ImageInputContainerProps) {
    );
 
    return (
-      <div>
+      <div className="my-8">
          {image ? (
             <Image
                src={image}
